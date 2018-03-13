@@ -1,6 +1,7 @@
-import kotlin.test.assertEquals
 import org.junit.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class TicTacToeStateTest {
@@ -15,6 +16,12 @@ class TicTacToeStateTest {
             }
         }
         return state
+    }
+
+    fun TicTacToeState.getStateForTest(): Array<String> {
+        return this.stateString().trim().split("\n").map { row: String ->
+            row.split(" ").filter{ s -> s.isNotEmpty() }.map { x -> if (x == "x" || x == "o") x else "." }.joinToString("")
+        }.toTypedArray()
     }
     @Test
     fun `TicTacToeState move() should check for invalid move`() {
@@ -40,28 +47,49 @@ class TicTacToeStateTest {
             "xo.",
             "..."
         )
+        val expected = arrayOf(
+            "xo.",
+            "xo.",
+            "x.."
+        )
         val state = newStateFromStrings(ss)
         state.move(Player("x"), 2, 0)
-        assertEquals(state.stateString(), "" +
-                "xo.\n" +
-                "xo.\n" +
-                "xo.\n")
+        assertTrue(expected contentDeepEquals  state.getStateForTest())
     }
 
     @Test
-    fun `TicTacToeState winner() should return winner`() {
-        assertEquals(true, true)
-    }
-}
+    fun `TicTacToeState winner() should return winner in diagonal direction`() {
+        val ss = arrayOf(
+            "x.o",
+            "...",
+            "o.x"
+        )
+        var state = newStateFromStrings(ss)
+        assertFalse(state.result().finished, "no winner yet")
 
-class TicTacToeGameTest {
-    @Test
-    fun `TicTacToe move() should change game state`() {
-        assertEquals(true, true)
+        state.move(Player("x"), 1, 1)
+        assertEquals(state.result().winner?.name?:"", "x", "x wins by diagonal")
+
+        state = newStateFromStrings(ss)
+        state.move(Player("o"), 1, 1)
+        assertEquals(state.result().winner?.name?:"", "o", "o wins by reverse diagonal")
     }
 
     @Test
-    fun `TicTacToeState winner() should return winner`() {
-        assertEquals(true, true)
+    fun `TicTacToeState winner() should return winner in vertical and horizontal direction`() {
+        val ss = arrayOf(
+                ".x.",
+                "o.o",
+                ".x."
+        )
+        var state = newStateFromStrings(ss)
+        assertFalse(state.result().finished, "no winner yet")
+
+        state.move(Player("x"), 1, 1)
+        assertEquals(state.result().winner?.name?:"", "x", "x wins by vertical")
+
+        state = newStateFromStrings(ss)
+        state.move(Player("o"), 1, 1)
+        assertEquals(state.result().winner?.name?:"", "o", "o wins by horizontal")
     }
 }

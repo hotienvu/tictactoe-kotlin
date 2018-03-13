@@ -1,13 +1,13 @@
 interface GameState {
     fun stateString(): String
-    fun winner(): Player?
+    fun result(): Result
 }
 
 class TicTacToeState(val N: Int): GameState {
     private var lastMove = Triple<Player?, Int, Int>(null,-1, -1 )
-    override fun winner(): Player? {
-        if (lastMove.first == null) return null
-
+    private var moveCount = 0
+    override fun result(): Result {
+        if (lastMove.first == null) return Result(null, false)
         val x = lastMove.second
         val y = lastMove.third
         var rowc = 0
@@ -34,7 +34,9 @@ class TicTacToeState(val N: Int): GameState {
         i = x+1
         j = y-1
         while (i <N && j>=0&& boards[i++][j--] == boards[x][y]) rdiac++
-        return if (colc == 3 || rowc == 3 || diac == 3 || rdiac == 3) lastMove.first else null
+        return if (colc == 3 || rowc == 3 || diac == 3 || rdiac == 3) Result(lastMove.first, true) else {
+            if (moveCount == N*N) Result(null, true) else Result(null, false)
+        }
     }
 
     private val boards: Array<Array<String>> = Array(N, { _ -> Array(N, { _ ->"."}) })
@@ -47,7 +49,7 @@ class TicTacToeState(val N: Int): GameState {
                 if (boards[i][j] == ".") {
                     s += ((i*N+j+1).toString().padStart(padding,' '))
                 } else {
-                    s += print(boards[i][j].padStart(padding, ' '))
+                    s += boards[i][j].padStart(padding, ' ')
                 }
             }
             s += "\n"
@@ -59,6 +61,7 @@ class TicTacToeState(val N: Int): GameState {
         if (i < 0 || j < 0 || i >= N || j >= N || !isEmpty(i, j))
             return false
 
+        moveCount++
         lastMove = Triple(player, i, j)
         boards[i][j] = player.name
         return true
@@ -70,9 +73,8 @@ class TicTacToeState(val N: Int): GameState {
 }
 
 abstract class Game() {
-    abstract fun state(): GameState
     abstract fun move(player: Player): GameState
-    abstract fun winner(): Player?
+    abstract fun winner(): Result
     abstract fun gameLoop()
 
     fun start() {
@@ -81,19 +83,35 @@ abstract class Game() {
 }
 
 class Player(val name: String) {
-
 }
 
-class TicTacToe(N: Int) : Game() {
+class Result(val winner: Player?, val finished: Boolean)
+
+abstract class Turnbased(var state: GameState): Game() {
     private val playerA = Player("x")
     private val playerB = Player("o")
     private var nextPlayer = playerA
 
-    private var state = TicTacToeState(N)
-
-    override fun state(): GameState {
-        return state
+    override fun gameLoop() {
+        while (!winner().finished)  {
+            println(state.stateString())
+            state = move(nextPlayer) as TicTacToeState
+            nextPlayer = if (nextPlayer === playerA) playerB else playerA
+        }
+        println(state.stateString())
+        when (winner().winner) {
+            null -> println("Draw!")
+            else -> println("winner is: " + winner().winner!!.name)
+        }
     }
+}
+
+class TicTacToe(state: TicTacToeState) : Turnbased(state) {
+    companion object {
+        fun create(N: Int): TicTacToe = TicTacToe(TicTacToeState(N))
+    }
+
+    private var _state = state
 
     override fun move(player: Player): GameState {
         var coord: Int
@@ -104,28 +122,17 @@ class TicTacToe(N: Int) : Game() {
             coord = readLine()?.toInt() ?: -1
             // convert to 0-based
             coord -= 1
-            x = coord / state.N
-            y = coord % state.N
-            if (!state.move(player, x, y))
+            x = coord / _state.N
+            y = coord % _state.N
+            if (!_state.move(player, x, y))
                 println("Invalid coordinate")
             else break
         }
 
-        return state
+        return _state
     }
 
-    override fun winner(): Player? {
-        return state.winner()
+    override fun winner(): Result {
+        return _state.result()
     }
-
-    override fun gameLoop() {
-        while (winner() == null)  {
-            println(state().stateString())
-            state = move(nextPlayer) as TicTacToeState
-            nextPlayer = if (nextPlayer === playerA) playerB else playerA
-        }
-        println(state().stateString())
-        println("winner is: " + winner()?.name)
-    }
-
 }

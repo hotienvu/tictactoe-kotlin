@@ -1,0 +1,5 @@
+FROM maven:3.5.3-jdk-8-alpine
+
+ADD . /build
+RUN cd /build && mvn clean package \
+    && rm -rf ~/.ivy2 ~/.m2 /usr/bin/mvn /usr/share/maven

@@ -82,10 +82,8 @@ abstract class Game() {
     }
 }
 
-class Player(val name: String) {
-}
-
-class Result(val winner: Player?, val finished: Boolean)
+data class Player(val name: String)
+data class Result(val winner: Player?, val finished: Boolean)
 
 abstract class Turnbased(var state: GameState): Game() {
     private val playerA = Player("x")
